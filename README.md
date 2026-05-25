@@ -1,7 +1,7 @@
 # QCode Toolkit — SVG QR Code Toolkit
 
-> 一个纯前端、零构建、单文件部署的二维码瑞士军刀，支持 **生成 · 美化 · 解析** 三合一，可直接在浏览器中运行。  
-> A frontend-only, zero-build, single-file QR code toolkit running in the browser — generate, beautify, and decode QR codes in one unified interface.
+> 一个纯前端、零构建、单文件部署的二维码瑞士军刀，支持 **生成 · 美化 · 解析** 三合一，可直接在浏览器中运行。  开箱即用
+> A frontend-only, zero-build, single-file QR code toolkit running in the browser — generate, beautify, and decode QR codes in one unified interface.No backend. No build step. Just open and use.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
 ![Platform](https://img.shields.io/badge/platform-browser-blue)
