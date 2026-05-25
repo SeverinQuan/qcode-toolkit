@@ -54,7 +54,6 @@ QCode Toolkit/
         ├── phase-02-二维码美化批处理能力.md
         ├── phase-03-界面稳定性与交互一致性.md
         ├── phase-04-SVG批量下载能力补充.md
-        ├── process-01.md ~ process-04.md  # 详细施工日志
         └── ...
 ```
 
