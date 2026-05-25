@@ -132,7 +132,7 @@ QCode Toolkit/
 
 ## 🐛 问题反馈 / Bug Reports
 
-发现问题？请 [提交 Issue](https://github.com/your-org/qcode-toolkit/issues)，并尽量包含：
+发现问题？请 [提交 Issue](https://github.com/SeverinQuan/qcode-toolkit/issues)，并尽量包含：
 
 - 操作系统与浏览器版本
 - 复现步骤
