@@ -1,0 +1,1308 @@
+<!--
+SVG QR Code Toolkit
+Copyright (c) 2026 SVG QR Code Toolkit Contributors
+SPDX-License-Identifier: MIT
+-->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG 二维码工具箱 | Quan - 免费便利工具</title>
+    <!-- 引入优雅的中西衬线字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Lora:ital,wght@0,400;0,500;1,400&family=Noto+Serif+SC:wght@200;300;400;600&display=swap" rel="stylesheet">
+    <!-- 引入 Tailwind CSS 进行基础布局 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入强大的 qr-code-styling 库 -->
+    <script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>
+    <!-- 引入 jsQR 库用于解码二维码 -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-base: #FBF9F6;
+            --text-primary: #231F1C;
+            --text-secondary: #655E56;
+            --text-muted: #9A8E82;
+            --accent-gold: #B89F7C;
+            --accent-gold-light: rgba(184, 159, 124, 0.08);
+            --accent-gold-deep: #8E7453;
+            --accent-cinnabar: #B04235;
+            --border-fine: rgba(184, 159, 124, 0.2);
+            --card-bg: rgba(255, 254, 252, 0.95);
+            --transition-smooth: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            --paper-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+        }
+
+        body {
+            background-color: var(--bg-base);
+            background-image: var(--paper-noise);
+            font-family: 'Lora', 'Noto Serif SC', serif;
+            color: var(--text-primary);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .ambient-glow {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0; left: 0;
+            z-index: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .glow-1 {
+            position: absolute;
+            top: -15%; left: -10%;
+            width: 65vw; height: 65vw;
+            background: radial-gradient(circle, rgba(184, 159, 124, 0.08) 0%, rgba(251, 249, 246, 0) 70%);
+            border-radius: 50%;
+            animation: drift 28s infinite alternate ease-in-out;
+        }
+        .glow-2 {
+            position: absolute;
+            bottom: -25%; right: -15%;
+            width: 75vw; height: 75vw;
+            background: radial-gradient(circle, rgba(143, 162, 144, 0.06) 0%, rgba(251, 249, 246, 0) 75%);
+            border-radius: 50%;
+            animation: drift 38s infinite alternate-reverse ease-in-out;
+        }
+
+        @keyframes drift {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(6%, 10%) scale(1.08); }
+        }
+
+        .zen-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-radius: 12px;
+            border: 1px solid rgba(184, 159, 124, 0.15);
+            box-shadow: 
+                0 4px 24px rgba(35, 31, 28, 0.01),
+                0 28px 72px rgba(35, 31, 28, 0.04),
+                inset 0 0 30px rgba(255, 255, 255, 0.8);
+            position: relative;
+            z-index: 10;
+        }
+        .zen-card::before {
+            content: ''; 
+            position: absolute; 
+            top: 10px; left: 10px; right: 10px; bottom: 10px;
+            border: 1px solid rgba(184, 159, 124, 0.1);
+            pointer-events: none;
+            border-radius: 8px;
+        }
+        .zen-card::after {
+            content: ''; 
+            position: absolute; 
+            top: 14px; left: 14px; right: 14px; bottom: 14px;
+            border: 1px dashed rgba(184, 159, 124, 0.06);
+            pointer-events: none;
+            border-radius: 6px;
+        }
+
+        .badge {
+            font-family: 'Cinzel', serif;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.45em;
+            text-transform: uppercase;
+            color: var(--accent-gold);
+            display: inline-block;
+            position: relative;
+            padding-bottom: 8px;
+        }
+        .badge::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 20%; right: 20%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent-gold), transparent);
+        }
+
+        h1 { font-weight: 300; letter-spacing: 0.06em; }
+
+        .zen-input {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid var(--border-fine);
+            color: var(--text-primary);
+            transition: var(--transition-smooth);
+            font-family: 'Lora', 'Noto Serif SC', serif;
+        }
+        .zen-input:focus {
+            border-color: var(--accent-gold-deep);
+            box-shadow: 0 0 0 1px var(--accent-gold-deep);
+            outline: none;
+            background: #fff;
+        }
+        .zen-input::placeholder { color: var(--text-muted); font-style: italic; font-weight: 300; }
+
+        select.zen-input {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%238E7453' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.75rem center;
+            background-repeat: no-repeat;
+            background-size: 1.2em 1.2em;
+            padding-right: 2.5rem;
+            appearance: none;
+        }
+        
+        optgroup { font-weight: 600; color: var(--accent-gold-deep); font-family: 'Noto Serif SC', serif; }
+        option { font-weight: 400; color: var(--text-primary); font-family: 'Lora', 'Noto Serif SC', serif; }
+
+        .zen-btn-outline {
+            border: 1px solid var(--accent-gold);
+            color: var(--accent-gold-deep);
+            background: transparent;
+            transition: var(--transition-smooth);
+            cursor: pointer;
+        }
+        .zen-btn-outline:hover {
+            background: var(--accent-gold-light);
+            transform: translateY(-1px);
+        }
+        
+        .zen-btn-primary {
+            background: var(--accent-gold-deep);
+            color: var(--bg-base);
+            border: 1px solid var(--accent-gold-deep);
+            transition: var(--transition-smooth);
+            cursor: pointer;
+        }
+        .zen-btn-primary:hover {
+            background: #7A6245;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(142, 116, 83, 0.2);
+        }
+
+        #qrcode-display {
+            background: #fff;
+            border: 1px solid var(--border-fine);
+            box-shadow: 0 12px 36px rgba(184, 159, 124, 0.04);
+            position: relative;
+            z-index: 20;
+        }
+        
+        /* 关键修复：兼容 SVG 与 Canvas 的完美缩放，禁止溢出 */
+        #qrcode-display svg, .batch-qr-preview svg,
+        #qrcode-display canvas, .batch-qr-preview canvas {
+            width: 100%;
+            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 4px;
+            object-fit: contain; /* Canvas 按比例缩放填充 */
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .bg-checkerboard {
+            background-color: #ffffff !important;
+            background-image: 
+                linear-gradient(45deg, rgba(184, 159, 124, 0.05) 25%, transparent 25%, transparent 75%, rgba(184, 159, 124, 0.05) 75%, rgba(184, 159, 124, 0.05)),
+                linear-gradient(45deg, rgba(184, 159, 124, 0.05) 25%, transparent 25%, transparent 75%, rgba(184, 159, 124, 0.05) 75%, rgba(184, 159, 124, 0.05)) !important;
+            background-size: 16px 16px !important;
+            background-position: 0 0, 8px 8px !important;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(35, 31, 28, 0.92);
+            color: #FAF7F2;
+            padding: 12px 28px;
+            border-radius: 4px;
+            font-size: 13px;
+            letter-spacing: 0.06em;
+            z-index: 999;
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s;
+            opacity: 0;
+            pointer-events: none;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+            border: 1px solid rgba(255,255,255,0.08);
+            font-family: 'Noto Serif SC', serif;
+            font-weight: 300;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translate(-50%, -80px);
+        }
+
+        .zen-btn svg { transition: transform 0.3s ease; }
+        .zen-btn:hover svg { transform: scale(1.05); }
+
+        .drag-over {
+            border-color: var(--accent-gold-deep) !important;
+            background-color: var(--accent-gold-light) !important;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(184, 159, 124, 0.3);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 md:p-8 py-12">
+
+    <div class="ambient-glow">
+        <div class="glow-1"></div>
+        <div class="glow-2"></div>
+    </div>
+
+    <!-- 左侧中英双语切换 -->
+    <div class="fixed left-0 top-1/2 -translate-y-1/2 z-50 bg-white/60 backdrop-blur-md shadow-lg border border-[var(--border-fine)] border-l-0 rounded-r-xl overflow-hidden flex flex-col">
+        <button id="lang-zh" class="px-3 py-3 text-sm font-medium transition-colors hover:bg-[var(--accent-gold-light)] bg-[var(--accent-gold-light)] text-[var(--accent-gold-deep)]">中</button>
+        <div class="h-[1px] w-full bg-[var(--border-fine)]"></div>
+        <button id="lang-en" class="px-3 py-3 text-sm font-medium transition-colors hover:bg-[var(--accent-gold-light)] text-[var(--text-secondary)]">EN</button>
+    </div>
+
+    <!-- 主卡片严格对齐 QCode.html 的宽度 460px -->
+    <div class="zen-card p-10 md:p-12 w-full max-w-[460px] flex flex-col items-center text-center mt-4">
+        
+        <div class="badge mb-4">Toolkit</div>
+        <h1 class="text-2xl md:text-[26px] text-gray-800 mb-6" data-i18n="title">SVG二维码工具箱</h1>
+        
+        <!-- 模式切换 Tabs -->
+        <div class="flex space-x-4 mb-8 relative z-20 border-b border-[var(--border-fine)] pb-2 w-full justify-center">
+            <button id="tab-generate" class="text-[14px] font-medium px-2 py-1 border-b-2 border-[var(--accent-gold-deep)] text-[var(--text-primary)] transition-colors" data-i18n="mode_generate">二维码生成</button>
+            <button id="tab-beautify" class="text-[14px] font-medium px-2 py-1 border-b-2 border-transparent text-[var(--text-muted)] hover:text-[var(--accent-gold-deep)] transition-colors" data-i18n="mode_beautify">二维码美化</button>
+            <button id="tab-extract" class="text-[14px] font-medium px-2 py-1 border-b-2 border-transparent text-[var(--text-muted)] hover:text-[var(--accent-gold-deep)] transition-colors" data-i18n="mode_extract">二维码解析</button>
+        </div>
+
+        <div class="w-full min-h-[580px] flex flex-col">
+            
+            <!-- ================= 生成区 (Generate) ================= -->
+            <div id="section-generate" class="w-full flex flex-col items-center">
+                
+                <div class="w-full mb-5 relative z-20 text-left">
+                    <div class="flex justify-between items-center mb-2">
+                        <label for="url-input" class="block text-xs font-medium text-[var(--text-secondary)] tracking-wider" data-i18n="url_label">全局设置</label>
+                        <button id="btn-add-batch" class="text-[12px] text-[var(--accent-gold)] font-medium hover:text-[var(--accent-gold-deep)] transition-colors flex items-center">
+                            <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> 
+                            <span data-i18n="add_link">新增一条</span>
+                        </button>
+                    </div>
+                    <!-- 支持多行或逗号分隔 -->
+                    <textarea id="url-input" class="zen-input w-full px-4 py-2.5 rounded-md text-sm resize-none" rows="1" placeholder="请输入链接 (支持逗号批量粘贴)..." data-i18n-placeholder="url_placeholder">http://QuanWen.art/</textarea>
+                </div>
+
+                <div class="w-full mb-6 relative z-20 text-left">
+                    <label for="theme-select" class="block text-xs font-medium text-[var(--text-secondary)] mb-2 tracking-wider" data-i18n="theme_label">全局配色方案</label>
+                    <select id="theme-select" class="zen-input w-full px-4 py-2.5 rounded-md text-sm cursor-pointer"></select>
+                </div>
+
+                <div class="w-full mb-8 flex items-center justify-end relative z-20">
+                    <label class="flex items-center cursor-pointer group">
+                        <span class="mr-3 text-xs font-medium text-[var(--text-secondary)] italic" data-i18n="transparent_bg">导出透明背景</span>
+                        <div class="relative">
+                            <input type="checkbox" id="transparent-bg" class="sr-only">
+                            <div class="block w-9 h-5 rounded-full transition-colors duration-300" style="background-color: #E6E0D8; border: 1px solid rgba(184, 159, 124, 0.2);"></div>
+                            <div class="dot absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition-transform duration-300 shadow-sm"></div>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- 单一模式展示区 -->
+                <div id="gen-single-mode" class="w-full flex flex-col items-center">
+                    <div class="flex justify-center mb-6 relative z-20 w-full">
+                        <div class="relative p-1.5 rounded-lg bg-white/40 backdrop-blur-sm border border-[var(--border-fine)]">
+                            <div id="qrcode-display" class="w-[220px] h-[220px] md:w-60 md:h-60 flex items-center justify-center rounded p-2 transition-colors duration-500"></div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col space-y-3 w-full relative z-20">
+                        <div class="flex space-x-3">
+                            <button id="copy-btn" class="zen-btn zen-btn-outline flex-1 font-medium py-2 rounded-md flex justify-center items-center text-[13px] tracking-wider">
+                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                <span data-i18n="copy_svg">复制 SVG 源码</span>
+                            </button>
+                            <button id="download-btn" class="zen-btn zen-btn-primary flex-1 font-medium py-2 rounded-md flex justify-center items-center text-[13px] tracking-wider">
+                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                <span data-i18n="download_svg">下载 .SVG</span>
+                            </button>
+                        </div>
+                        <div class="flex space-x-2 items-center bg-white/40 px-3 py-2 rounded-md border border-[var(--border-fine)] w-full justify-between">
+                            <span class="text-[12px] text-[var(--text-secondary)] whitespace-nowrap font-medium" data-i18n="png_size">PNG 尺寸:</span>
+                            <select id="png-size-select" class="zen-input flex-1 px-2 py-1 rounded-md text-[13px] cursor-pointer max-w-[120px] h-8">
+                                <option value="100">100 x 100</option>
+                                <option value="200">200 x 200</option>
+                                <option value="300" selected>300 x 300</option>
+                                <option value="custom" data-zh="自定义" data-en="Custom" data-i18n-opt="size_custom">自定义</option>
+                            </select>
+                            <input type="number" id="custom-size-input" class="zen-input w-[70px] px-2 py-1 rounded-md text-[13px] hidden h-8" placeholder="px" value="500" min="50">
+                            <button id="download-png-btn" class="zen-btn zen-btn-outline px-3 py-1 rounded-md flex justify-center items-center text-[12px] tracking-wider whitespace-nowrap h-8 ml-2">
+                                <span data-i18n="download_png">下载 .PNG</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 批量模式展示区 -->
+                <div id="gen-batch-mode" class="hidden w-full flex-col relative z-20">
+                    <div id="gen-batch-list" class="w-full flex flex-col space-y-3 max-h-[350px] overflow-y-auto pr-1 mb-4">
+                        <!-- 动态注入生成项目 -->
+                    </div>
+                    <div class="flex justify-between items-center bg-white/40 p-3 rounded-md border border-[var(--border-fine)] shadow-sm">
+                        <span class="text-xs text-[var(--text-secondary)] font-medium"><span id="gen-batch-count">0</span> <span data-i18n="batch_status">个任务就绪</span></span>
+                        <div class="flex space-x-2">
+                            <button id="gen-batch-download-svg-btn" class="zen-btn zen-btn-outline px-3 py-1.5 rounded-md flex justify-center items-center text-[12px] tracking-wider">
+                                <span data-i18n="download_all_gen_svg">批量下载 (.SVG)</span>
+                            </button>
+                            <button id="gen-batch-download-btn" class="zen-btn zen-btn-primary px-3 py-1.5 rounded-md flex justify-center items-center text-[12px] tracking-wider">
+                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                <span data-i18n="download_all_gen_png">批量下载 (.PNG)</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= 美化区 (Beautify Batch) ================= -->
+            <div id="section-beautify" class="w-full flex-col items-center hidden relative z-20">
+                <div class="w-full mb-4 relative z-20 text-left">
+                    <label class="block text-xs font-medium text-[var(--text-secondary)] mb-2 tracking-wider" data-i18n="theme_label">配色方案</label>
+                    <select id="beautify-theme-select" class="zen-input w-full px-4 py-2 rounded-md text-sm cursor-pointer"></select>
+                </div>
+
+                <div class="w-full mb-6 flex items-center justify-end relative z-20">
+                    <label class="flex items-center cursor-pointer group">
+                        <span class="mr-3 text-xs font-medium text-[var(--text-secondary)] italic" data-i18n="transparent_bg">导出透明背景</span>
+                        <div class="relative">
+                            <input type="checkbox" id="beautify-transparent-bg" class="sr-only">
+                            <div class="block w-9 h-5 rounded-full transition-colors duration-300" style="background-color: #E6E0D8; border: 1px solid rgba(184, 159, 124, 0.2);"></div>
+                            <div class="dot absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition-transform duration-300 shadow-sm"></div>
+                        </div>
+                    </label>
+                </div>
+
+                <div id="batch-drop-zone" class="w-full border border-dashed border-[var(--accent-gold)] rounded-xl p-6 text-center cursor-pointer transition-colors hover:bg-[var(--accent-gold-light)] relative mb-4 bg-white/50">
+                    <input type="file" id="batch-file-input" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept="image/*" multiple>
+                    <div class="flex flex-col items-center justify-center text-[var(--text-secondary)]">
+                        <svg class="w-8 h-8 mb-2 text-[var(--accent-gold-deep)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        <p class="text-[14px] font-medium text-[var(--text-primary)]" data-i18n="batch_drop_text">点击或拖拽多个二维码图片到此处</p>
+                        <p class="text-[12px] mt-1 italic" data-i18n="drop_text_2">支持 PNG, JPG, JPEG 格式 (支持批处理)</p>
+                    </div>
+                </div>
+
+                <div id="batch-actions" class="hidden w-full flex justify-between items-center mb-4">
+                    <span class="text-xs text-[var(--text-secondary)] font-medium"><span id="batch-count">0</span> <span data-i18n="batch_status">个任务就绪</span></span>
+                    <div class="flex space-x-2">
+                        <button id="batch-download-all-svg-btn" class="zen-btn zen-btn-outline px-3 py-1.5 rounded-md flex items-center text-[12px] tracking-wider">
+                            <span data-i18n="download_all_svg">一键下载 (.SVG)</span>
+                        </button>
+                        <button id="batch-download-all-btn" class="zen-btn zen-btn-primary px-3 py-1.5 rounded-md flex items-center text-[12px] tracking-wider">
+                            <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            <span data-i18n="download_all_png">一键下载 (.PNG)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="batch-results" class="w-full flex flex-col space-y-3 max-h-[320px] overflow-y-auto pr-2">
+                    <!-- 批量结果注入区 -->
+                </div>
+            </div>
+
+            <!-- ================= 解析区 (Extract) ================= -->
+            <div id="section-extract" class="w-full flex-col items-center hidden relative z-20">
+                <div id="extract-drop-zone" class="w-full border border-dashed border-[var(--accent-gold)] rounded-xl p-8 text-center cursor-pointer transition-colors hover:bg-[var(--accent-gold-light)] relative mb-6 bg-white/50">
+                    <!-- 改为 multiple 支持批处理 -->
+                    <input type="file" id="extract-file-input" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept="image/*" multiple>
+                    <div class="flex flex-col items-center justify-center text-[var(--text-secondary)]">
+                        <svg class="w-10 h-10 mb-3 text-[var(--accent-gold-deep)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        <p class="text-[14px] font-medium text-[var(--text-primary)]" data-i18n="drop_text_1">点击上传 或 拖拽图片到此处</p>
+                        <p class="text-[12px] mt-1 italic" data-i18n="drop_text_2">支持 PNG, JPG, JPEG 格式 (支持批处理)</p>
+                    </div>
+                </div>
+                
+                <div id="extract-actions" class="hidden w-full flex justify-between items-center mb-3">
+                    <span class="text-xs text-[var(--text-secondary)] font-medium"><span id="extract-count">0</span> <span data-i18n="batch_status">个任务就绪</span></span>
+                    <button id="extract-copy-all-btn" class="zen-btn zen-btn-primary px-3 py-1.5 rounded-md text-[12px] tracking-wider flex items-center">
+                        <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg> 
+                        <span data-i18n="copy_all_ext">复制全部结果</span>
+                    </button>
+                </div>
+
+                <div id="extract-batch-results" class="w-full flex flex-col space-y-3 max-h-[350px] overflow-y-auto pr-2">
+                    <!-- 解析结果列表注入区 -->
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+    <!-- 典雅 Toast -->
+    <div class="toast" id="toast">操作成功！</div>
+    <!-- 隐藏的 Canvas 用于解析 -->
+    <canvas id="canvas" class="hidden"></canvas>
+
+    <script>
+        // ================= 数据源配置 =================
+        const dict = {
+            'zh-CN': {
+                'title': 'SVG 二维码工具箱',
+                'mode_generate': '二维码生成',
+                'mode_beautify': '二维码美化',
+                'mode_extract': '二维码解析',
+                'url_label': '全局设置',
+                'url_placeholder': '请输入链接 (支持逗号批量粘贴)...',
+                'theme_label': '全局配色方案',
+                'transparent_bg': '导出透明背景',
+                'copy_svg': '复制 SVG 源码',
+                'download_svg': '下载 .SVG',
+                'png_size': 'PNG 尺寸:',
+                'download_png': '下载 .PNG',
+                'drop_text_1': '点击上传 或 拖拽图片到此处',
+                'drop_text_2': '支持 PNG, JPG, JPEG 格式 (支持批处理)',
+                'batch_drop_text': '点击或拖拽多个二维码图片到此处',
+                'download_all_svg': '一键下载 (.SVG)',
+                'download_all_png': '一键下载 (.PNG)',
+                'download_all_gen_svg': '批量下载 (.SVG)',
+                'download_all_gen_png': '批量下载 (.PNG)',
+                'download_all': '一键全部下载 (.PNG)',
+                'download_all_gen': '一键批量下载 (.PNG)',
+                'batch_status': '个任务就绪',
+                'preview_label': '预览:',
+                'result_label': '提取结果:',
+                'copy_content': '复制内容',
+                'open_link': '访问链接',
+                'toast_svg_copy': 'SVG 源码已落入您的笔格！',
+                'toast_svg_dl': '清欢已备好，开始下载！',
+                'toast_png_dl': 'PNG 图像已生成，开始下载！',
+                'toast_extract_success': '解析成功！',
+                'toast_extract_fail': '部分图片未检测到二维码。',
+                'toast_upload_err': '请上传图片文件',
+                'toast_extract_copy': '提取内容已复制！',
+                'toast_copy_all': '全部解析结果已复制！',
+                'empty_text': '一纸素笺待落墨',
+                'add_link': '新增一条',
+                'theme_default': '-- 跟随全局配色 --',
+                'extract_fail_msg': '解析失败',
+                'grp_1': '👑 臻享 / 典藏',
+                'grp_2': '✨ 基础 / 品牌',
+                'grp_3': '🏮 国风 / 雅致',
+                'grp_4': '🌿 自然 / 治愈',
+                'grp_5': '💎 极简 / 高级'
+            },
+            'en': {
+                'title': 'SVG QR Code Toolkit',
+                'mode_generate': 'Generator',
+                'mode_beautify': 'Beautify (Batch)',
+                'mode_extract': 'Extractor',
+                'url_label': 'Global Settings',
+                'url_placeholder': 'Enter link (comma-separated for batch)...',
+                'theme_label': 'Global Color Theme',
+                'transparent_bg': 'Transparent Background',
+                'copy_svg': 'Copy SVG',
+                'download_svg': 'Download SVG',
+                'png_size': 'PNG Size:',
+                'download_png': 'Download PNG',
+                'drop_text_1': 'Click or drag image here',
+                'drop_text_2': 'Supports PNG, JPG, JPEG (Batch)',
+                'batch_drop_text': 'Click or drag multiple QR images here',
+                'download_all_svg': 'Download All (.SVG)',
+                'download_all_png': 'Download All (.PNG)',
+                'download_all_gen_svg': 'Batch Download (.SVG)',
+                'download_all_gen_png': 'Batch Download (.PNG)',
+                'download_all': 'Download All (.PNG)',
+                'download_all_gen': 'Batch Download (.PNG)',
+                'batch_status': 'tasks ready',
+                'preview_label': 'Preview:',
+                'result_label': 'Result:',
+                'copy_content': 'Copy',
+                'open_link': 'Visit',
+                'toast_svg_copy': 'SVG Source Copied!',
+                'toast_svg_dl': 'Downloading SVG...',
+                'toast_png_dl': 'Downloading PNGs...',
+                'toast_extract_success': 'Extraction successful!',
+                'toast_extract_fail': 'No QR code detected in some images.',
+                'toast_upload_err': 'Please upload an image file.',
+                'toast_extract_copy': 'Content copied!',
+                'toast_copy_all': 'All results copied!',
+                'empty_text': 'Awaiting input...',
+                'add_link': 'Add Link',
+                'theme_default': '-- Follow Global --',
+                'extract_fail_msg': 'Failed',
+                'grp_1': '👑 Premium / Collection',
+                'grp_2': '✨ Basic / Brand',
+                'grp_3': '🏮 Oriental / Elegant',
+                'grp_4': '🌿 Nature / Healing',
+                'grp_5': '💎 Minimal / Advanced'
+            }
+        };
+
+        const themesConfig = [
+            { labelZh: '👑 臻享 / 典藏', labelEn: '👑 Premium / Collection', i18nKey: 'grp_1', options: [
+                { id: 'black-gold', zh: '尊贵黑金 (黑底金点)', en: 'Black Gold (Dark bg, Gold dots)' },
+                { id: 'emerald-gold', zh: '翡翠鎏金 (墨绿镶金)', en: 'Emerald Gold (Green bg, Gold dots)' },
+                { id: 'royal-purple', zh: '皇家紫韵 (深紫浅紫)', en: 'Royal Purple' },
+                { id: 'starry-night', zh: '星空璀璨 (夜蓝星芒)', en: 'Starry Night (Blue bg, Yellow dots)' }
+            ]},
+            { labelZh: '✨ 基础 / 品牌', labelEn: '✨ Basic / Brand', i18nKey: 'grp_2', options: [
+                { id: 'classic-dark', zh: '商务极简 (纯黑)', en: 'Classic Dark (Black)' },
+                { id: 'alipay-blue', zh: '支付宝风 (亮蓝)', en: 'Alipay Blue (Bright Blue)' },
+                { id: 'wechat-green', zh: '微信经典 (纯绿)', en: 'WeChat Green (Pure Green)' },
+                { id: 'modern-blue', zh: '科技圆润 (深蓝)', en: 'Modern Blue (Dark Blue)' }
+            ]},
+            { labelZh: '🏮 国风 / 雅致', labelEn: '🏮 Oriental / Elegant', i18nKey: 'grp_3', options: [
+                { id: 'personal-theme', zh: '典雅空间 (素笺金朱)', en: 'Elegant Space (Gold & Red)', selected: true },
+                { id: 'porcelain-blue', zh: '青花瓷韵 (黛蓝)', en: 'Porcelain Blue (Indigo)' },
+                { id: 'cinnabar-red', zh: '朱砂丹红 (中国红)', en: 'Cinnabar Red (China Red)' },
+                { id: 'ink-wash', zh: '水墨丹青 (灰黑)', en: 'Ink Wash (Grey & Black)' }
+            ]},
+            { labelZh: '🌿 自然 / 治愈', labelEn: '🌿 Nature / Healing', i18nKey: 'grp_4', options: [
+                { id: 'matcha-green', zh: '抹茶拿铁 (茶绿)', en: 'Matcha Green' },
+                { id: 'sakura-fall', zh: '樱花初绽 (柔粉)', en: 'Sakura Fall (Pink)' },
+                { id: 'autumn-maple', zh: '秋日枫叶 (橘红)', en: 'Autumn Maple (Orange)' },
+                { id: 'glacier-blue', zh: '冰川透蓝 (清冷透白)', en: 'Glacier Blue' }
+            ]},
+            { labelZh: '💎 极简 / 高级', labelEn: '💎 Minimal / Advanced', i18nKey: 'grp_5', options: [
+                { id: 'space-gray', zh: '深空极灰 (灰黑)', en: 'Space Gray' },
+                { id: 'rose-gold', zh: '玫瑰鎏金 (粉金)', en: 'Rose Gold' },
+                { id: 'coffee-mocha', zh: '摩卡咖啡 (温润深棕)', en: 'Coffee Mocha (Brown)' }
+            ]}
+        ];
+
+        const themes = {
+            'black-gold': { backgroundOptions: { color: "#111827" }, dotsOptions: { type: "classy", gradient: { type: "linear", rotation: Math.PI / 4, colorStops: [{ offset: 0, color: "#d97706" }, { offset: 1, color: "#fcd34d" }] } }, cornersSquareOptions: { color: "#b45309", type: "extra-rounded" }, cornersDotOptions: { color: "#fbbf24", type: "dot" } },
+            'emerald-gold': { backgroundOptions: { color: "#022c22" }, dotsOptions: { color: "#10b981", type: "classy" }, cornersSquareOptions: { color: "#fbbf24", type: "extra-rounded" }, cornersDotOptions: { color: "#fcd34d", type: "dot" } },
+            'royal-purple': { backgroundOptions: { color: "#2e1065" }, dotsOptions: { color: "#d8b4fe", type: "classy" }, cornersSquareOptions: { color: "#c084fc", type: "extra-rounded" }, cornersDotOptions: { color: "#f3e8ff", type: "dot" } },
+            'starry-night': { backgroundOptions: { color: "#0f172a" }, dotsOptions: { color: "#fbbf24", type: "rounded" }, cornersSquareOptions: { color: "#38bdf8", type: "extra-rounded" }, cornersDotOptions: { color: "#fcd34d", type: "dot" } },
+            'classic-dark': { dotsOptions: { color: "#1f2937", type: "square" }, cornersSquareOptions: { color: "#111827", type: "square" }, cornersDotOptions: { color: "#111827", type: "square" } },
+            'alipay-blue': { dotsOptions: { color: "#1677ff", type: "classy" }, cornersSquareOptions: { color: "#1677ff", type: "extra-rounded" }, cornersDotOptions: { color: "#1677ff", type: "dot" } },
+            'wechat-green': { dotsOptions: { color: "#059669", type: "classy" }, cornersSquareOptions: { color: "#047857", type: "extra-rounded" }, cornersDotOptions: { color: "#047857", type: "dot" } },
+            'modern-blue': { dotsOptions: { color: "#2563eb", type: "rounded" }, cornersSquareOptions: { color: "#1e3a8a", type: "extra-rounded" }, cornersDotOptions: { color: "#1e3a8a", type: "dot" } },
+            'personal-theme': { backgroundOptions: { color: "#FBF9F6" }, dotsOptions: { type: "classy", gradient: { type: "linear", rotation: Math.PI / 4, colorStops: [{ offset: 0, color: "#231F1C" }, { offset: 1, color: "#655E56" }] } }, cornersSquareOptions: { color: "#8E7453", type: "extra-rounded" }, cornersDotOptions: { color: "#B04235", type: "dot" } },
+            'porcelain-blue': { backgroundOptions: { color: "#f0f9ff" }, dotsOptions: { color: "#1e40af", type: "dots" }, cornersSquareOptions: { color: "#1e3a8a", type: "extra-rounded" }, cornersDotOptions: { color: "#1e3a8a", type: "dot" } },
+            'cinnabar-red': { backgroundOptions: { color: "#fef2f2" }, dotsOptions: { color: "#b91c1c", type: "classy" }, cornersSquareOptions: { color: "#991b1b", type: "extra-rounded" }, cornersDotOptions: { color: "#991b1b", type: "dot" } },
+            'ink-wash': { backgroundOptions: { color: "#f9fafb" }, dotsOptions: { color: "#4b5563", type: "rounded" }, cornersSquareOptions: { color: "#1f2937", type: "extra-rounded" }, cornersDotOptions: { color: "#000000", type: "dot" } },
+            'matcha-green': { backgroundOptions: { color: "#f7fee7" }, dotsOptions: { color: "#65a30d", type: "rounded" }, cornersSquareOptions: { color: "#4d7c0f", type: "extra-rounded" }, cornersDotOptions: { color: "#3f6212", type: "dot" } },
+            'sakura-fall': { backgroundOptions: { color: "#fff1f2" }, dotsOptions: { color: "#f43f5e", type: "classy" }, cornersSquareOptions: { color: "#be123c", type: "extra-rounded" }, cornersDotOptions: { color: "#9f1239", type: "dot" } },
+            'autumn-maple': { backgroundOptions: { color: "#fff7ed" }, dotsOptions: { color: "#ea580c", type: "rounded" }, cornersSquareOptions: { color: "#c2410c", type: "extra-rounded" }, cornersDotOptions: { color: "#9a3412", type: "dot" } },
+            'glacier-blue': { backgroundOptions: { color: "#f0fdfa" }, dotsOptions: { color: "#0d9488", type: "dots" }, cornersSquareOptions: { color: "#0f766e", type: "extra-rounded" }, cornersDotOptions: { color: "#14b8a6", type: "dot" } },
+            'space-gray': { dotsOptions: { color: "#6b7280", type: "dots" }, cornersSquareOptions: { color: "#374151", type: "extra-rounded" }, cornersDotOptions: { color: "#111827", type: "dot" } },
+            'rose-gold': { dotsOptions: { type: "classy", gradient: { type: "linear", colorStops: [{ offset: 0, color: "#be123c" }, { offset: 1, color: "#fb7185" }] } }, cornersSquareOptions: { color: "#9f1239", type: "extra-rounded" }, cornersDotOptions: { color: "#881337", type: "dot" } },
+            'coffee-mocha': { backgroundOptions: { color: "#fdf8f6" }, dotsOptions: { color: "#5d4037", type: "classy" }, cornersSquareOptions: { color: "#3e2723", type: "extra-rounded" }, cornersDotOptions: { color: "#795548", type: "dot" } }
+        };
+
+        // ================= DOM 获取 & 初始化 =================
+        let currentLang = 'zh-CN';
+        const toast = document.getElementById('toast');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        // 生成下拉菜单选项
+        function populateSelects() {
+            const selects = [document.getElementById('theme-select'), document.getElementById('beautify-theme-select')];
+            selects.forEach(select => {
+                select.innerHTML = '';
+                themesConfig.forEach(group => {
+                    const optgroup = document.createElement('optgroup');
+                    optgroup.setAttribute('data-i18n-label', group.i18nKey);
+                    optgroup.label = currentLang === 'zh-CN' ? group.labelZh : group.labelEn;
+                    group.options.forEach(opt => {
+                        const option = document.createElement('option');
+                        option.value = opt.id;
+                        option.setAttribute('data-zh', opt.zh);
+                        option.setAttribute('data-en', opt.en);
+                        option.textContent = currentLang === 'zh-CN' ? opt.zh : opt.en;
+                        if(opt.selected) option.selected = true;
+                        optgroup.appendChild(option);
+                    });
+                    select.appendChild(optgroup);
+                });
+            });
+        }
+        populateSelects();
+
+        function getThemeOptionsHtml(selectedVal) {
+            let html = '';
+            themesConfig.forEach(group => {
+                let groupLabel = currentLang === 'zh-CN' ? group.labelZh : group.labelEn;
+                html += `<optgroup label="${groupLabel}" data-i18n-label="${group.i18nKey}">`;
+                group.options.forEach(opt => {
+                    let optLabel = currentLang === 'zh-CN' ? opt.zh : opt.en;
+                    let sel = (opt.id === selectedVal) ? 'selected' : '';
+                    html += `<option value="${opt.id}" data-zh="${opt.zh}" data-en="${opt.en}" ${sel}>${optLabel}</option>`;
+                });
+                html += `</optgroup>`;
+            });
+            return html;
+        }
+
+        // ================= 多语言切换 =================
+        function switchLanguage(lang) {
+            currentLang = lang;
+            const btnZh = document.getElementById('lang-zh');
+            const btnEn = document.getElementById('lang-en');
+            if (lang === 'zh-CN') {
+                btnZh.classList.add('bg-[var(--accent-gold-light)]', 'text-[var(--accent-gold-deep)]');
+                btnZh.classList.remove('text-[var(--text-secondary)]');
+                btnEn.classList.remove('bg-[var(--accent-gold-light)]', 'text-[var(--accent-gold-deep)]');
+                btnEn.classList.add('text-[var(--text-secondary)]');
+            } else {
+                btnEn.classList.add('bg-[var(--accent-gold-light)]', 'text-[var(--accent-gold-deep)]');
+                btnEn.classList.remove('text-[var(--text-secondary)]');
+                btnZh.classList.remove('bg-[var(--accent-gold-light)]', 'text-[var(--accent-gold-deep)]');
+                btnZh.classList.add('text-[var(--text-secondary)]');
+            }
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (dict[lang][key]) {
+                    if(el.children.length > 0) {
+                        el.lastChild.textContent = dict[lang][key];
+                    } else {
+                        el.textContent = dict[lang][key];
+                    }
+                }
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                if (dict[lang][key]) el.placeholder = dict[lang][key];
+            });
+            document.querySelectorAll('optgroup[data-i18n-label]').forEach(el => {
+                const key = el.getAttribute('data-i18n-label');
+                if (dict[lang][key]) el.label = dict[lang][key];
+            });
+            document.querySelectorAll('option[data-zh]').forEach(el => {
+                el.textContent = lang === 'zh-CN' ? el.getAttribute('data-zh') : el.getAttribute('data-en');
+            });
+            document.querySelectorAll('option[data-i18n-opt]').forEach(el => {
+                el.textContent = lang === 'zh-CN' ? el.getAttribute('data-zh') : el.getAttribute('data-en');
+            });
+
+            updateGenerateUI();
+            reRenderExtractBatchList();
+        }
+        document.getElementById('lang-zh').addEventListener('click', () => switchLanguage('zh-CN'));
+        document.getElementById('lang-en').addEventListener('click', () => switchLanguage('en'));
+
+        // ================= 模式切换 =================
+        function switchMode(mode) {
+            const tabs = ['generate', 'beautify', 'extract'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                const sec = document.getElementById(`section-${t}`);
+                if (t === mode) {
+                    btn.classList.add('border-[var(--accent-gold-deep)]', 'text-[var(--text-primary)]');
+                    btn.classList.remove('border-transparent', 'text-[var(--text-muted)]');
+                    sec.classList.remove('hidden');
+                    sec.classList.add('flex');
+                } else {
+                    btn.classList.remove('border-[var(--accent-gold-deep)]', 'text-[var(--text-primary)]');
+                    btn.classList.add('border-transparent', 'text-[var(--text-muted)]');
+                    sec.classList.add('hidden');
+                    sec.classList.remove('flex');
+                }
+            });
+        }
+        document.getElementById('tab-generate').addEventListener('click', () => switchMode('generate'));
+        document.getElementById('tab-beautify').addEventListener('click', () => switchMode('beautify'));
+        document.getElementById('tab-extract').addEventListener('click', () => switchMode('extract'));
+
+        function showToast(message) {
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        function syncSwitchStyle(checkboxId) {
+            const cb = document.getElementById(checkboxId);
+            const dot = cb.parentElement.querySelector('.dot');
+            const bg = cb.parentElement.querySelector('.block');
+            if(cb.checked) {
+                dot.style.transform = 'translateX(24px)';
+                bg.style.backgroundColor = 'var(--accent-gold-deep)';
+                bg.style.borderColor = 'var(--accent-gold-deep)';
+            } else {
+                dot.style.transform = 'translateX(0)';
+                bg.style.backgroundColor = '#E6E0D8';
+                bg.style.borderColor = 'rgba(184, 159, 124, 0.2)';
+            }
+        }
+
+        // ================= 生成器逻辑 (Generate Tab) =================
+        let qrCodeInstance = null; 
+        let generateBatchItems = []; 
+        
+        const urlInput = document.getElementById('url-input');
+        const themeSelect = document.getElementById('theme-select');
+        const genTransparentBg = document.getElementById('transparent-bg');
+        const btnAddBatch = document.getElementById('btn-add-batch');
+
+        genTransparentBg.addEventListener('change', function() {
+            syncSwitchStyle('transparent-bg');
+            updateGenerateUI();
+        });
+
+        themeSelect.addEventListener('change', updateGenerateUI);
+
+        urlInput.addEventListener('input', (e) => {
+            const val = e.target.value;
+            if (val.match(/[,，\n]/)) {
+                const parts = val.split(/[,，\n]+/).map(s => s.trim()).filter(s => s);
+                if (parts.length > 0) {
+                    parts.forEach(p => generateBatchItems.push({ 
+                        id: 'gen-' + Date.now() + Math.random().toString().slice(2,6), 
+                        url: p, 
+                        theme: 'default', 
+                        instance: null 
+                    }));
+                    e.target.value = ''; 
+                    updateGenerateUI();
+                }
+            } else {
+                if (generateBatchItems.length === 0) {
+                    updateSingleQRCode();
+                }
+            }
+        });
+
+        btnAddBatch.addEventListener('click', () => {
+            const val = urlInput.value.trim();
+            if (val) {
+                generateBatchItems.push({ id: 'gen-' + Date.now(), url: val, theme: 'default', instance: null });
+                urlInput.value = '';
+            } else {
+                generateBatchItems.push({ id: 'gen-' + Date.now(), url: '', theme: 'default', instance: null });
+            }
+            updateGenerateUI();
+        });
+
+        function updateGenerateUI() {
+            const singleMode = document.getElementById('gen-single-mode');
+            const batchMode = document.getElementById('gen-batch-mode');
+            
+            if (generateBatchItems.length > 0) {
+                singleMode.classList.add('hidden');
+                singleMode.classList.remove('flex');
+                batchMode.classList.remove('hidden');
+                batchMode.classList.add('flex');
+                renderGenerateBatchList();
+            } else {
+                singleMode.classList.remove('hidden');
+                singleMode.classList.add('flex');
+                batchMode.classList.add('hidden');
+                batchMode.classList.remove('flex');
+                updateSingleQRCode();
+            }
+        }
+
+        // ================= 生成器 - 单一模式 =================
+        function updateSingleQRCode() {
+            const text = urlInput.value;
+            const themeKey = themeSelect.value;
+            const isTransparent = genTransparentBg.checked;
+            const display = document.getElementById('qrcode-display');
+
+            if (!text) {
+                display.innerHTML = `<span style="color: var(--text-muted); font-style: italic; font-size: 14px;">${dict[currentLang]['empty_text']}</span>`;
+                qrCodeInstance = null;
+                return;
+            }
+
+            display.innerHTML = ''; 
+            const themeBgColor = themes[themeKey].backgroundOptions?.color || "#ffffff";
+            const exportBgColor = isTransparent ? "transparent" : themeBgColor;
+
+            if (isTransparent) {
+                display.classList.add('bg-checkerboard');
+                display.style.backgroundColor = 'transparent';
+                display.style.borderColor = 'rgba(184, 159, 124, 0.3)';
+            } else {
+                display.classList.remove('bg-checkerboard');
+                display.style.backgroundColor = themeBgColor;
+                display.style.borderColor = 'transparent';
+            }
+
+            // 【关键修复1】彻底删除了 imageOptions，防止挖空中心造成短数据变为“空壳”
+            qrCodeInstance = new QRCodeStyling({
+                width: 300, height: 300, type: "svg", data: text, margin: 0,
+                ...themes[themeKey],
+                backgroundOptions: { ...(themes[themeKey].backgroundOptions || {}), color: exportBgColor }
+            });
+
+            qrCodeInstance.append(display);
+            setTimeout(() => {
+                const svg = display.querySelector('svg');
+                if(svg) {
+                    svg.setAttribute('width', '100%');
+                    svg.setAttribute('height', '100%');
+                    if (!svg.getAttribute('viewBox')) svg.setAttribute('viewBox', '0 0 300 300');
+                }
+            }, 50);
+        }
+
+        document.getElementById('copy-btn').addEventListener('click', async () => {
+            if (!qrCodeInstance || !urlInput.value) return;
+            try {
+                const blob = await qrCodeInstance.getRawData("svg");
+                let svgText = await blob.text();
+                if (!svgText.includes('viewBox=')) svgText = svgText.replace('<svg ', '<svg viewBox="0 0 300 300" ');
+                const textArea = document.createElement("textarea");
+                textArea.value = svgText;
+                textArea.style.position = "fixed";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showToast(dict[currentLang]['toast_svg_copy']);
+            } catch (err) { console.error(err); }
+        });
+
+        document.getElementById('download-btn').addEventListener('click', () => {
+            if (!qrCodeInstance || !urlInput.value) return;
+            qrCodeInstance.download({ name: `zen-qrcode-${themeSelect.value}`, extension: "svg" });
+            showToast(dict[currentLang]['toast_svg_dl']);
+        });
+
+        document.getElementById('download-png-btn').addEventListener('click', () => {
+            if (!qrCodeInstance || !urlInput.value) return;
+            const sizeVal = document.getElementById('png-size-select').value;
+            let size = sizeVal === 'custom' ? (parseInt(document.getElementById('custom-size-input').value) || 300) : parseInt(sizeVal);
+            qrCodeInstance.update({ width: size, height: size });
+            setTimeout(() => {
+                qrCodeInstance.download({ name: `zen-qrcode-${themeSelect.value}-${size}px`, extension: "png" });
+                showToast(dict[currentLang]['toast_png_dl']);
+                setTimeout(() => {
+                    qrCodeInstance.update({ width: 300, height: 300 });
+                    updateSingleQRCode();
+                }, 500);
+            }, 100);
+        });
+
+        document.getElementById('png-size-select').addEventListener('change', function() {
+            const customInput = document.getElementById('custom-size-input');
+            if(this.value === 'custom') {
+                customInput.classList.remove('hidden');
+                this.classList.add('w-[80px]');
+                this.classList.remove('flex-1');
+            } else {
+                customInput.classList.add('hidden');
+                this.classList.remove('w-[80px]');
+                this.classList.add('flex-1');
+            }
+        });
+
+        // ================= 生成器 - 批量模式 =================
+        function renderGenerateBatchList() {
+            const listContainer = document.getElementById('gen-batch-list');
+            listContainer.innerHTML = '';
+            const isTransparent = genTransparentBg.checked;
+            const globalTheme = themeSelect.value;
+            
+            document.getElementById('gen-batch-count').textContent = generateBatchItems.length;
+
+            generateBatchItems.forEach((item, index) => {
+                const themeToUse = item.theme === 'default' ? globalTheme : item.theme;
+                const themeBgColor = themes[themeToUse].backgroundOptions?.color || "#ffffff";
+                const exportBgColor = isTransparent ? "transparent" : themeBgColor;
+
+                const itemHtml = document.createElement('div');
+                itemHtml.className = "flex items-center justify-between p-3 bg-white/60 border border-[var(--border-fine)] rounded-lg relative group transition-colors hover:border-[var(--accent-gold)]";
+                
+                let selectHtml = `
+                    <select class="zen-input w-full px-2 py-1.5 rounded text-[12px] gen-batch-item-theme cursor-pointer">
+                        <option value="default">${dict[currentLang]['theme_default']}</option>
+                        ${getThemeOptionsHtml(item.theme)}
+                    </select>
+                `;
+
+                itemHtml.innerHTML = `
+                    <div class="flex flex-col w-[60%] space-y-2">
+                        <input type="text" class="zen-input w-full px-2 py-1.5 rounded text-[12px] gen-batch-item-input" value="${item.url}" placeholder="${dict[currentLang]['url_label']}">
+                        ${selectHtml}
+                    </div>
+                    <div class="flex items-center ml-2 relative">
+                        <div class="w-16 h-16 shrink-0 overflow-hidden bg-white border border-[var(--border-fine)] rounded flex items-center justify-center p-1 batch-qr-preview shadow-sm transition-colors duration-500">
+                            <!-- Canvas 预览区 -->
+                        </div>
+                        <button class="ml-2 text-[var(--text-muted)] hover:text-[var(--accent-cinnabar)] transition-colors remove-gen-batch-btn p-1 absolute -right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 bg-white/80 rounded-full shadow-sm" title="移除">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+                `;
+
+                listContainer.appendChild(itemHtml);
+
+                const previewContainer = itemHtml.querySelector('.batch-qr-preview');
+                if (isTransparent) {
+                    previewContainer.classList.add('bg-checkerboard');
+                    previewContainer.style.backgroundColor = 'transparent';
+                    previewContainer.style.borderColor = 'rgba(184, 159, 124, 0.3)';
+                } else {
+                    previewContainer.classList.remove('bg-checkerboard');
+                    previewContainer.style.backgroundColor = themeBgColor;
+                    previewContainer.style.borderColor = 'transparent';
+                }
+
+                const previewData = ((item.url || "").split(/\r?\n/).map(s => s.trim()).find(Boolean)) || " ";
+
+                // 【关键修复2】批量模式启用 type: "canvas"，锁定 300x300（交由CSS缩小，无变形问题，无需重绘补 viewBox）
+                item.instance = new QRCodeStyling({
+                    width: 300, height: 300, type: "canvas", data: previewData, margin: 0,
+                    ...themes[themeToUse],
+                    backgroundOptions: { ...(themes[themeToUse].backgroundOptions || {}), color: exportBgColor }
+                });
+                
+                if (previewData.trim()) {
+                    previewContainer.innerHTML = '';
+                    item.instance.append(previewContainer);
+                } else {
+                    previewContainer.innerHTML = `<span class="text-[10px] text-[var(--text-muted)]">...</span>`;
+                }
+
+                itemHtml.querySelector('.gen-batch-item-input').addEventListener('input', (e) => {
+                    item.url = e.target.value;
+                    const nextPreviewData = (item.url || "").split(/\r?\n/).map(s => s.trim()).find(Boolean) || "";
+                    if (item.instance && nextPreviewData) {
+                        item.instance.update({ data: nextPreviewData });
+                        const canvasNode = previewContainer.querySelector('canvas');
+                        if(!canvasNode) {
+                             previewContainer.innerHTML = '';
+                             item.instance.append(previewContainer);
+                        }
+                    } else if (!item.url) {
+                        previewContainer.innerHTML = `<span class="text-[10px] text-[var(--text-muted)]">...</span>`;
+                    }
+                });
+                
+                itemHtml.querySelector('.gen-batch-item-theme').addEventListener('change', (e) => {
+                    item.theme = e.target.value;
+                    renderGenerateBatchList();
+                });
+
+                itemHtml.querySelector('.remove-gen-batch-btn').addEventListener('click', () => {
+                    generateBatchItems = generateBatchItems.filter(i => i.id !== item.id);
+                    updateGenerateUI();
+                });
+            });
+        }
+
+        // 【关键修复3】下载时，已经是 300x300 的实体 Canvas 了，无需放大缩回！直接秒下！
+        document.getElementById('gen-batch-download-btn').addEventListener('click', async () => {
+            if (generateBatchItems.length === 0) return;
+            showToast(dict[currentLang]['toast_png_dl']);
+            for (let i = 0; i < generateBatchItems.length; i++) {
+                const item = generateBatchItems[i];
+                if (item.instance && item.url) {
+                    const themeName = item.theme === 'default' ? themeSelect.value : item.theme;
+                    item.instance.download({ name: `zen-qrcode-${themeName}-${i+1}`, extension: 'png' });
+                }
+            }
+        });
+
+        document.getElementById('gen-batch-download-svg-btn').addEventListener('click', async () => {
+            if (generateBatchItems.length === 0) return;
+            showToast(dict[currentLang]['toast_svg_dl']);
+            for (let i = 0; i < generateBatchItems.length; i++) {
+                const item = generateBatchItems[i];
+                if (item.instance && item.url) {
+                    const themeName = item.theme === 'default' ? themeSelect.value : item.theme;
+                    item.instance.download({ name: `zen-qrcode-${themeName}-${i+1}`, extension: 'svg' });
+                }
+            }
+        });
+
+
+        // ================= 美化区 (Beautify Batch) =================
+        let beautifyBatchItems = [];
+        const beautifyDropZone = document.getElementById('batch-drop-zone');
+        const beautifyFileInput = document.getElementById('batch-file-input');
+        const beautifyBatchResults = document.getElementById('batch-results');
+        const beautifyBatchActions = document.getElementById('batch-actions');
+        const beautifyBatchCountSpan = document.getElementById('batch-count');
+        const beautifyThemeSelect = document.getElementById('beautify-theme-select');
+        const beautifyTransparentBg = document.getElementById('beautify-transparent-bg');
+
+        beautifyTransparentBg.addEventListener('change', () => {
+            syncSwitchStyle('beautify-transparent-bg');
+            reRenderBeautifyBatchItems();
+        });
+
+        beautifyThemeSelect.addEventListener('change', reRenderBeautifyBatchItems);
+
+        beautifyDropZone.addEventListener('dragover', (e) => { e.preventDefault(); beautifyDropZone.classList.add('drag-over'); });
+        beautifyDropZone.addEventListener('dragleave', (e) => { e.preventDefault(); beautifyDropZone.classList.remove('drag-over'); });
+        beautifyDropZone.addEventListener('drop', (e) => {
+            e.preventDefault(); beautifyDropZone.classList.remove('drag-over');
+            if (e.dataTransfer.files) processBeautifyBatchFiles(e.dataTransfer.files);
+        });
+        beautifyFileInput.addEventListener('change', (e) => { if (e.target.files) processBeautifyBatchFiles(e.target.files); });
+
+        async function processBeautifyBatchFiles(files) {
+            beautifyBatchItems = [];
+            beautifyBatchResults.innerHTML = '';
+            let validCount = 0;
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (!file.type.startsWith('image/')) continue;
+                
+                try {
+                    const dataUrl = await readFileAsDataURL(file);
+                    const decodedText = await decodeImage(dataUrl);
+                    if (decodedText) {
+                        validCount++;
+                        const id = 'beautify-item-' + i;
+                        beautifyBatchItems.push({ id, file, decodedText, instance: null, theme: 'default' });
+                        
+                        const itemHtml = document.createElement('div');
+                        itemHtml.className = "flex items-center justify-between p-3 bg-white/60 border border-[var(--border-fine)] rounded-lg";
+                        itemHtml.innerHTML = `
+                            <div class="flex flex-col items-start w-[55%] pr-2 overflow-hidden space-y-1.5">
+                                <span class="text-[11px] text-[var(--text-secondary)] truncate w-full text-left font-medium">${file.name}</span>
+                                <span class="text-[12px] text-[var(--text-primary)] truncate w-full text-left bg-[var(--bg-base)] px-2 py-1 rounded" title="${decodedText}">${decodedText}</span>
+                                <select class="zen-input w-full px-2 py-1.5 rounded text-[12px] cursor-pointer beautify-batch-item-theme">
+                                    <option value="default" data-i18n="theme_default">${dict[currentLang]['theme_default']}</option>
+                                    ${getThemeOptionsHtml('default')}
+                                </select>
+                            </div>
+                            <div class="flex items-center">
+                                <div id="preview-${id}" class="w-12 h-12 shrink-0 overflow-hidden bg-white border border-[var(--border-fine)] rounded flex items-center justify-center mr-3 batch-qr-preview p-0.5"></div>
+                                <div class="flex flex-col space-y-1">
+                                    <button onclick="downloadBeautifyBatchItem('${id}', 'svg')" class="zen-btn zen-btn-outline px-2 py-1 rounded text-[10px]">SVG</button>
+                                </div>
+                            </div>
+                        `;
+                        beautifyBatchResults.appendChild(itemHtml);
+                        
+                        itemHtml.querySelector('.beautify-batch-item-theme').addEventListener('change', (e) => {
+                            const item = beautifyBatchItems.find(it => it.id === id);
+                            if (item) {
+                                item.theme = e.target.value;
+                                reRenderBeautifyBatchItems();
+                            }
+                        });
+                    }
+                } catch(e) { console.error(e); }
+            }
+
+            if (validCount > 0) {
+                beautifyBatchActions.classList.remove('hidden');
+                beautifyBatchCountSpan.textContent = validCount;
+                reRenderBeautifyBatchItems();
+            } else {
+                beautifyBatchActions.classList.add('hidden');
+                showToast(dict[currentLang]['toast_extract_fail']);
+            }
+        }
+
+        function reRenderBeautifyBatchItems() {
+            const globalThemeKey = beautifyThemeSelect.value;
+            const isTransparent = beautifyTransparentBg.checked;
+
+            beautifyBatchItems.forEach(item => {
+                const itemThemeKey = (item.theme && item.theme !== 'default') ? item.theme : globalThemeKey;
+                const themeBgColor = themes[itemThemeKey].backgroundOptions?.color || "#ffffff";
+                const exportBgColor = isTransparent ? "transparent" : themeBgColor;
+
+                const previewDiv = document.getElementById(`preview-${item.id}`);
+                previewDiv.innerHTML = '';
+                
+                if (isTransparent) {
+                    previewDiv.classList.add('bg-checkerboard');
+                    previewDiv.style.backgroundColor = 'transparent';
+                    previewDiv.style.borderColor = 'rgba(184, 159, 124, 0.3)';
+                } else {
+                    previewDiv.classList.remove('bg-checkerboard');
+                    previewDiv.style.backgroundColor = themeBgColor;
+                    previewDiv.style.borderColor = 'transparent';
+                }
+
+                // 【关键修复4】同样在美化模式清除挖空，并改用高分辨率 Canvas
+                item.instance = new QRCodeStyling({
+                    width: 300, height: 300, type: "canvas", data: item.decodedText, margin: 0,
+                    ...themes[itemThemeKey],
+                    backgroundOptions: { ...(themes[itemThemeKey].backgroundOptions || {}), color: exportBgColor }
+                });
+
+                item.instance.append(previewDiv);
+            });
+        }
+
+        // 同理，下载代码直接瘦身，删除多余缩放
+        window.downloadBeautifyBatchItem = async function(id, ext) {
+            const item = beautifyBatchItems.find(i => i.id === id);
+            if (item && item.instance) {
+                item.instance.download({ name: `beautified-${item.file.name.split('.')[0]}`, extension: ext });
+            }
+        };
+
+        document.getElementById('batch-download-all-btn').addEventListener('click', async () => {
+            if (beautifyBatchItems.length === 0) return;
+            showToast(dict[currentLang]['toast_png_dl']);
+            for (let i = 0; i < beautifyBatchItems.length; i++) {
+                const item = beautifyBatchItems[i];
+                if (item.instance) {
+                    item.instance.download({ name: `beautified-${item.file.name.split('.')[0]}`, extension: 'png' });
+                }
+            }
+        });
+
+        document.getElementById('batch-download-all-svg-btn').addEventListener('click', async () => {
+            if (beautifyBatchItems.length === 0) return;
+            showToast(dict[currentLang]['toast_svg_dl']);
+            for (let i = 0; i < beautifyBatchItems.length; i++) {
+                const item = beautifyBatchItems[i];
+                if (item.instance) {
+                    item.instance.download({ name: `beautified-${item.file.name.split('.')[0]}`, extension: 'svg' });
+                }
+            }
+        });
+
+
+        // ================= 解析区 (Extract Batch) =================
+        let extractBatchItems = [];
+        const extractDropZone = document.getElementById('extract-drop-zone');
+        const extractFileInput = document.getElementById('extract-file-input');
+        const extractActions = document.getElementById('extract-actions');
+        const extractCountSpan = document.getElementById('extract-count');
+        const extractBatchResults = document.getElementById('extract-batch-results');
+
+        extractDropZone.addEventListener('dragover', (e) => { e.preventDefault(); extractDropZone.classList.add('drag-over'); });
+        extractDropZone.addEventListener('dragleave', (e) => { e.preventDefault(); extractDropZone.classList.remove('drag-over'); });
+        extractDropZone.addEventListener('drop', (e) => {
+            e.preventDefault(); extractDropZone.classList.remove('drag-over');
+            if (e.dataTransfer.files) processExtractBatchFiles(e.dataTransfer.files);
+        });
+        extractFileInput.addEventListener('change', (e) => {
+            if (e.target.files) processExtractBatchFiles(e.target.files);
+        });
+
+        async function processExtractBatchFiles(files) {
+            extractBatchItems = [];
+            let validImages = 0;
+            let successCount = 0;
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (!file.type.startsWith('image/')) continue;
+                validImages++;
+                
+                try {
+                    const dataUrl = await readFileAsDataURL(file);
+                    const decodedText = await decodeImage(dataUrl);
+                    if (decodedText) successCount++;
+                    extractBatchItems.push({ id: 'ext-' + i, file, dataUrl, text: decodedText });
+                } catch(e) { console.error(e); }
+            }
+
+            if (validImages > 0) {
+                if(successCount > 0) showToast(dict[currentLang]['toast_extract_success']);
+                else showToast(dict[currentLang]['toast_extract_fail']);
+                
+                extractActions.classList.remove('hidden');
+                extractActions.classList.add('flex');
+                extractCountSpan.textContent = successCount;
+                reRenderExtractBatchList();
+            } else {
+                showToast(dict[currentLang]['toast_upload_err']);
+            }
+        }
+
+        function reRenderExtractBatchList() {
+            extractBatchResults.innerHTML = '';
+            extractBatchItems.forEach(item => {
+                const isUrl = isValidHttpUrl(item.text);
+                const failText = dict[currentLang]['extract_fail_msg'];
+                const copyText = dict[currentLang]['copy_content'];
+                const openText = dict[currentLang]['open_link'];
+
+                const itemHtml = document.createElement('div');
+                itemHtml.className = "flex items-stretch bg-white/60 border border-[var(--border-fine)] rounded-lg overflow-hidden";
+                itemHtml.innerHTML = `
+                    <div class="w-20 bg-black/5 flex items-center justify-center p-2 border-r border-[var(--border-fine)]">
+                        <img class="max-h-16 max-w-full object-contain rounded-sm" src="${item.dataUrl}" alt="Preview">
+                    </div>
+                    <div class="flex flex-col flex-1 p-2.5 justify-center min-w-0">
+                        <p class="text-[11px] text-[var(--text-secondary)] mb-1 truncate w-full">${item.file.name}</p>
+                        ${item.text 
+                            ? `<input class="zen-input text-xs w-full px-2 py-1.5 rounded bg-white/80 border-[var(--border-fine)] truncate" value="${item.text}" readonly>`
+                            : `<span class="text-xs text-[var(--accent-cinnabar)]">${failText}</span>`
+                        }
+                    </div>
+                    ${item.text ? `
+                    <div class="flex flex-col justify-center px-2 py-2 space-y-1.5 border-l border-[var(--border-fine)] bg-white/30">
+                        <button class="zen-btn zen-btn-outline px-2 py-1 rounded text-[10px] whitespace-nowrap" onclick="copyExtractItemText('${item.id}')">${copyText}</button>
+                        ${isUrl ? `<a href="${item.text}" target="_blank" class="zen-btn zen-btn-primary px-2 py-1 rounded text-[10px] text-center whitespace-nowrap">${openText}</a>` : ''}
+                    </div>
+                    ` : ''}
+                `;
+                extractBatchResults.appendChild(itemHtml);
+            });
+        }
+
+        window.copyExtractItemText = function(id) {
+            const item = extractBatchItems.find(i => i.id === id);
+            if (item && item.text) {
+                const textArea = document.createElement("textarea");
+                textArea.value = item.text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try { document.execCommand('copy'); showToast(dict[currentLang]['toast_extract_copy']); } 
+                catch (err) {}
+                document.body.removeChild(textArea);
+            }
+        };
+
+        document.getElementById('extract-copy-all-btn').addEventListener('click', () => {
+            const allTexts = extractBatchItems.filter(i => i.text).map(i => i.text).join('\n');
+            if (allTexts) {
+                const textArea = document.createElement("textarea");
+                textArea.value = allTexts;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try { document.execCommand('copy'); showToast(dict[currentLang]['toast_copy_all']); } 
+                catch (err) {}
+                document.body.removeChild(textArea);
+            }
+        });
+
+        // ================= Utilities =================
+        function readFileAsDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = e => reject(e);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function decodeImage(imageUrl) {
+            return new Promise(resolve => {
+                const img = new Image();
+                img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
+                    resolve(code ? code.data : null);
+                };
+                img.onerror = () => resolve(null);
+                img.src = imageUrl;
+            });
+        }
+
+        function isValidHttpUrl(string) {
+            if(!string) return false;
+            let url;
+            try { url = new URL(string); } catch (_) { return false; }
+            return url.protocol === "http:" || url.protocol === "https:";
+        }
+
+        // ================= 初始化 =================
+        updateGenerateUI();
+        switchLanguage('zh-CN');
+        switchMode('generate');
+
+    </script>
+</body>
+</html>
